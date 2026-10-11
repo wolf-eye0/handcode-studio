@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Handcode Studio — CNC Handwriting & OCR Plotter</title>
+  <link rel="stylesheet" href="/static/style.css?v=3">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Header -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="logo-icon">✍️</div>
+      <div class="brand-text">
+        <h1>Handcode Studio</h1>
+        <span class="subtitle">AI Neural Handwriting & CNC Plotter</span>
+      </div>
+    </div>
+    <div class="nav-status">
+      <div class="status-pill" id="machineStatusPill">
+        <span class="status-dot disconnected"></span>
+        <span id="machineStatusText">Checking Port...</span>
+      </div>
+      <button class="btn btn-outline" id="btnRefreshPorts" title="Refresh Serial Ports">🔄 Ports</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-layout">
+    <!-- Left Sidebar: Controls -->
+    <aside class="sidebar">
+      <!-- Section Quick Navigation Jump Bar -->
+      <nav class="sidebar-jump-bar" aria-label="Section Quick Navigation">
+        <button type="button" class="btn-jump-section" data-jump="card1" title="Jump to Input & Extraction">① Input</button>
+        <button type="button" class="btn-jump-section" data-jump="card2" title="Jump to Notebook & Paper Size">② Paper</button>
+        <button type="button" class="btn-jump-section" data-jump="card3" title="Jump to Handwriting Style">③ Style</button>
+        <button type="button" class="btn-jump-section" data-jump="card4" title="Jump to Machine & G-Code">④ Machine</button>
+      </nav>
+
+      <!-- Section 1: Ingestion -->
+      <div class="card" id="card1">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="step-num">1</span>
+            <h3>Input & Extraction</h3>
+          </div>
+          <div class="card-scroll-btn-group">
+            <button type="button" class="btn-card-scroll btn-scroll-up" data-action="up" data-target="card1Body" data-card="card1" title="Scroll Section 1 Up">▲</button>
+            <button type="button" class="btn-card-scroll btn-scroll-down" data-action="down" data-target="card1Body" data-card="card1" title="Scroll Section 1 Down">▼</button>
+          </div>
+        </div>
+        <div class="card-body card-scrollable-body" id="card1Body">
+          <div class="dropzone" id="dropzone">
+            <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.txt,.md" hidden>
+            <div class="drop-icon">📄</div>
+            <p class="drop-text"><strong>Click or Drop file here</strong></p>
+            <span class="drop-hint">Images (OCR), PDFs, Word (.docx), or Text</span>
+          </div>
+
+          <div class="text-editor-wrap">
+            <div class="editor-tools">
+              <label for="textInput">Extracted / Custom Text:</label>
+              <button class="btn-link" id="btnSampleText">Load Sample</button>
+            </div>
+            <textarea id="textInput" rows="4" placeholder="Upload a document above or paste text directly here to turn it into handwriting..."></textarea>
+            <div class="text-counter">
+              <span id="charCount">0 characters</span> • <span id="wordCount">0 words</span>
+            </div>
+
+            <!-- Paper Continuation & Selection Marking Box -->
+            <div class="continuation-bar" id="continuationBar">
+              <div class="continuation-header">
+                <span class="continuation-title">📌 Paper Continuation &amp; Marking</span>
+                <span class="continuation-badge" id="continuationBadge">0 on paper • All pending</span>
+              </div>
+              <div class="continuation-actions">
+                <button type="button" class="btn btn-xs btn-outline" id="btnMarkSelection" title="Highlight text in editor and click to mark it as already written on paper">✓ Mark Selection</button>
+                <button type="button" class="btn btn-xs btn-outline" id="btnMarkUpToCursor" title="Mark all text before current editor cursor as already written">Mark to Cursor</button>
+                <button type="button" class="btn btn-xs btn-outline" id="btnMarkAllWritten" title="Mark entire current text as already written on paper">Mark All</button>
+                <button type="button" class="btn btn-xs btn-outline btn-reset-marks" id="btnClearMarked" title="Reset marks so entire page plots from start (New Sheet of Paper)">↺ Reset</button>
+              </div>
+              <div class="continuation-controls-row">
+                <label for="inputStartWord" class="continuation-lbl">Plot starts from Word #:</label>
+                <div class="stepper-inline">
+                  <button type="button" class="btn-step" id="btnWordStepMinus" title="Step backward">◀</button>
+                  <input type="number" id="inputStartWord" class="form-control form-control-xs" value="1" min="1" step="1">
+                  <button type="button" class="btn-step" id="btnWordStepPlus" title="Step forward">▶</button>
+                  <span class="continuation-total" id="continuationTotalWords">of 0 words</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-block btn-render-action" id="btnRenderTop">
+            <span class="btn-icon">⚡</span> Render Handwriting
+          </button>
+        </div>
+      </div>
+
+      <!-- Section 2: Templates & Paper Geometry -->
+      <div class="card" id="card2">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="step-num">2</span>
+            <h3>Notebook & Paper Size</h3>
+          </div>
+          <div class="card-scroll-btn-group">
+            <button type="button" class="btn-card-scroll btn-scroll-up" data-action="up" data-target="card2Body" data-card="card2" title="Scroll Section 2 Up">▲</button>
+            <button type="button" class="btn-card-scroll btn-scroll-down" data-action="down" data-target="card2Body" data-card="card2" title="Scroll Section 2 Down">▼</button>
+          </div>
+        </div>
+        <div class="card-body card-scrollable-body" id="card2Body">
+          <div class="form-group">
+            <label for="templateSelect">Template Preset:</label>
+            <select id="templateSelect" class="form-control">
+              <option value="kokuyo_camlin_small">Kokuyo Camlin Small Single-Line (155 × 190 mm)</option>
+              <option value="a4_standard">A4 Standard Plain Sheet (210 × 297 mm)</option>
+              <option value="a4_ruled">A4 Ruled Notebook (210 × 297 mm)</option>
+              <option value="square_bed_200">Square Bed (200 × 200 mm)</option>
+              <option value="a5_notebook">A5 Lined Notebook (148 × 210 mm)</option>
+              <option value="custom">⚙️ Custom Notebook Measurements...</option>
+            </select>
+          </div>
+
+          <!-- Custom Measurements Drawer -->
+          <details id="customConfigDetails" class="custom-accordion">
+            <summary>Custom Paper & Margin Configuration</summary>
+            <div class="custom-fields-grid">
+              <div class="form-group">
+                <label>Width (mm):</label>
+                <input type="number" id="cfgWidth" class="form-control" value="155" step="0.5">
+              </div>
+              <div class="form-group">
+                <label>Height (mm):</label>
+                <input type="number" id="cfgHeight" class="form-control" value="190" step="0.5">
+              </div>
+              <div class="form-group">
+                <label>Left Margin (mm):</label>
+                <input type="number" id="cfgMarginLeft" class="form-control" value="25" step="0.5">
+              </div>
+              <div class="form-group">
+                <label>Right Margin (mm):</label>
+                <input type="number" id="cfgMarginRight" class="form-control" value="10" step="0.5">
+              </div>
+              <div class="form-group">
+                <label>Top Margin (mm):</label>
+                <input type="number" id="cfgMarginTop" class="form-control" value="28" step="0.5">
+              </div>
+              <div class="form-group">
+                <label>Bottom Margin (mm):</label>
+                <input type="number" id="cfgMarginBottom" class="form-control" value="14" step="0.5">
+              </div>
+              <div class="form-group">
+                <label>Line Spacing (mm):</label>
+                <input type="number" id="cfgLineSpacing" class="form-control" value="8.0" step="0.1">
+              </div>
+              <div class="form-group checkbox-group">
+                <label><input type="checkbox" id="cfgShowRuled" checked> Show Ruled Lines</label>
+                <label><input type="checkbox" id="cfgShowMargin" checked> Show Red Margin Line</label>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- Section 3: Handwriting Style -->
+      <div class="card" id="card3">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="step-num">3</span>
+            <h3>Handwriting Style</h3>
+          </div>
+          <div class="card-scroll-btn-group">
+            <button type="button" class="btn-card-scroll btn-scroll-up" data-action="up" data-target="card3Body" data-card="card3" title="Scroll Section 3 Up">▲</button>
+            <button type="button" class="btn-card-scroll btn-scroll-down" data-action="down" data-target="card3Body" data-card="card3" title="Scroll Section 3 Down">▼</button>
+          </div>
+        </div>
+        <div class="card-body card-scrollable-body" id="card3Body">
+          <div class="form-group">
+            <label for="styleSelect">Style:</label>
+            <select id="styleSelect" class="form-control">
+              <option value="1">Style 1 (Neat Cursive Flow)</option>
+              <option value="2">Style 2 (Casual Everyday)</option>
+              <option value="3">Style 3 (Compact Elegant)</option>
+              <option value="4">Style 4 (Fast Script)</option>
+              <option value="5">Style 5 (Natural Slanted)</option>
+              <option value="6">Style 6 (Rounded Informal)</option>
+              <option value="7">Style 7 (Clean Print-Cursive)</option>
+              <option value="8">Style 8 (Artistic Flourish)</option>
+              <option value="9">Style 9 (Fluid Cursive)</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col">
+              <label for="biasSlider">Legibility / Bias: <span id="biasVal">0.75</span></label>
+              <input type="range" id="biasSlider" min="0.4" max="1.3" step="0.05" value="0.75" class="slider">
+            </div>
+            <div class="form-group col">
+              <label for="fontSizeInput">Font Size: <span id="fontSizeVal">5.2</span> mm</label>
+              <input type="range" id="fontSizeInput" min="3.5" max="9.0" step="0.1" value="5.2" class="slider">
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-block btn-render-action" id="btnRender">
+            <span class="btn-icon">⚡</span> Render Handwriting
+          </button>
+        </div>
+      </div>
+
+      <!-- Section 4: Machine & Toolpaths -->
+      <div class="card" id="card4">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="step-num">4</span>
+            <h3>G-Code & Machine Settings</h3>
+          </div>
+          <div class="card-scroll-btn-group">
+            <button type="button" class="btn-card-scroll btn-scroll-up" data-action="up" data-target="card4Body" data-card="card4" title="Scroll Section 4 Up">▲</button>
+            <button type="button" class="btn-card-scroll btn-scroll-down" data-action="down" data-target="card4Body" data-card="card4" title="Scroll Section 4 Down">▼</button>
+          </div>
+        </div>
+        <div class="card-body card-scrollable-body" id="card4Body">
+          <div class="form-group">
+            <label>Pen Lift Method:</label>
+            <div class="radio-inline">
+              <label><input type="radio" name="penMode" value="servo" checked> Servo PWM (M3 / M5)</label>
+              <label><input type="radio" name="penMode" value="z_axis"> Z-Axis Stepper (G0 / G1)</label>
+            </div>
+          </div>
+          <div class="form-row" id="servoCommandsRow">
+            <div class="form-group col">
+              <label for="penDownCmd">Pen Down Cmd:</label>
+              <input type="text" id="penDownCmd" class="form-control" value="M5" placeholder="e.g. M5">
+            </div>
+            <div class="form-group col">
+              <label for="penUpCmd">Pen Up Cmd:</label>
+              <input type="text" id="penUpCmd" class="form-control" value="M3 S90" placeholder="e.g. M3 S90">
+            </div>
+            <div class="form-group col-auto" style="display:flex; align-items:flex-end;">
+              <button type="button" class="btn btn-sm btn-outline" id="btnFlipPenCmds" title="Swap Pen Up and Pen Down Commands" style="height: 34px; white-space: nowrap;">⇄ Swap</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group col">
+              <label for="feedDraw">Draw Speed (mm/min):</label>
+              <input type="number" id="feedDraw" class="form-control" value="1800" step="100">
+            </div>
+            <div class="form-group col">
+              <label for="feedTravel">Travel Speed (mm/min):</label>
+              <input type="number" id="feedTravel" class="form-control" value="5000" step="500">
+            </div>
+          </div>
+          <div class="form-group checkbox-group">
+            <label><input type="checkbox" id="chkInvertY"> Invert Y Axis (Machine Bed Orientation)</label>
+          </div>
+          <div class="form-group lab-record-toggle-container">
+            <label class="lab-record-checkbox-label" title="Enable 180° inverted plotting for bound notebooks/lab records">
+              <input type="checkbox" id="chkLabRecordFlip">
+              <span class="lab-record-title">📖 Lab Record Mode (180° Inverted Physical Plot)</span>
+            </label>
+            <div class="lab-record-hint">
+              Flips machine motion 180° (X &amp; Y inverted on physical bed) so you can rotate the bound notebook upside-down and write right next to the machine rail. Screen preview stays completely normal and right-side up!
+            </div>
+          </div>
+          <div class="form-group resume-touch-container">
+            <label class="resume-touch-checkbox-label" title="Start plotting directly from current / touched position without homing to (0,0) every time">
+              <input type="checkbox" id="chkResumeFromTouch" checked>
+              <span class="resume-touch-title">🎯 Resume from Touched Position (Skip (0,0) Origin)</span>
+            </label>
+            <div class="resume-touch-hint">
+              When enabled, touching the virtual page aligns the physical pen at your notebook start, and plotting moves directly from that spot to the writing point without travelling back to (0,0) origin every time.
+            </div>
+          </div>
+
+          <div class="machine-jog-section">
+            <div class="sub-heading-row">
+              <h4 class="sub-heading">Manual Jog & Hardware Test</h4>
+            </div>
+            <div class="live-coords-bar" id="liveCoordsBar">
+              <span class="live-coords-label">Live Pen Tip:</span>
+              <span class="live-coords-val" id="liveCoordsText">X: 0.00 mm, Y: 0.00 mm</span>
+              <span class="live-pen-badge up" id="livePenBadge">UP</span>
+            </div>
+            <div class="jog-grid">
+              <div class="jog-row">
+                <button type="button" class="btn btn-sm btn-outline jog-btn" id="btnJogYPlus" title="Jog Y +10mm">▲ Y+10</button>
+              </div>
+              <div class="jog-row">
+                <button type="button" class="btn btn-sm btn-outline jog-btn" id="btnJogXMinus" title="Jog X -10mm">◀ X-10</button>
+                <button type="button" class="btn btn-sm btn-secondary jog-btn" id="btnZeroOrigin" title="Set Current Position as Origin (0,0)">Zero (0,0)</button>
+                <button type="button" class="btn btn-sm btn-outline jog-btn" id="btnJogXPlus" title="Jog X +10mm">X+10 ▶</button>
+              </div>
+              <div class="jog-row">
+                <button type="button" class="btn btn-sm btn-outline jog-btn" id="btnJogYMinus" title="Jog Y -10mm">▼ Y-10</button>
+              </div>
+            </div>
+            <div class="form-row" style="margin-top: 8px;">
+              <button type="button" class="btn btn-sm btn-outline col" id="btnTestPenDown" title="Lower Pen to Paper (M5)">Pen Down (M5)</button>
+              <button type="button" class="btn btn-sm btn-outline col" id="btnTestPenUp" title="Lift Pen Up (M3 S90)">Pen Up (M3)</button>
+              <button type="button" class="btn btn-sm btn-outline col" id="btnUnlockMachine" title="Clear GRBL Alarm Lock ($X)">Unlock ($X)</button>
+            </div>
+            <div class="touch-hint-box" id="touchHintBox">
+              👆 <strong>Touch Coordination:</strong> Click or tap anywhere on the notebook page to move the physical pen directly to that point!
+            </div>
+            <div class="power-notice">
+              ⚠️ <strong>Motor Power Requirement:</strong> The A4988 stepper drivers need external <strong>12V DC power</strong> plugged into the 2-pin connector on the CNC shield. USB alone only powers the Arduino logic & pen servo!
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right Workspace: Visual Preview & Plotter -->
+    <section class="workspace">
+      <!-- Toolbar -->
+      <div class="canvas-toolbar">
+        <div class="toolbar-left">
+          <div class="page-nav">
+            <button class="btn btn-sm btn-icon-only" id="btnPrevPage" title="Previous Page">◀</button>
+            <span class="page-indicator" id="pageIndicator">Page 1 of 1</span>
+            <button class="btn btn-sm btn-icon-only" id="btnNextPage" title="Next Page">▶</button>
+          </div>
+          <div class="page-tabs" id="pageTabsContainer"></div>
+        </div>
+
+        <div class="toolbar-center">
+          <label class="toggle-pill"><input type="checkbox" id="chkShowRuled" checked> Ruled Lines</label>
+          <label class="toggle-pill"><input type="checkbox" id="chkShowTravel" checked> Pen-Up Travel</label>
+          <label class="toggle-pill"><input type="checkbox" id="chkShowPaper" checked> Paper Texture</label>
+          <label class="toggle-pill written-pill" title="Show already written strokes in distinct marked green coloring"><input type="checkbox" id="chkShowWritten" checked> 🟢 Show Written</label>
+          <label class="toggle-pill skip-pill" title="Skip already written text when plotting to machine"><input type="checkbox" id="chkSkipWritten" checked> ⏭️ Skip Written</label>
+          <label class="toggle-pill active-marker"><input type="checkbox" id="chkShowPenTip" checked> 📍 Live Pen</label>
+          <label class="toggle-pill active-touch" title="Click or tap anywhere on the notebook page to move the physical pen directly there!"><input type="checkbox" id="chkTouchToMove" checked> 👆 Touch to Move</label>
+          <label class="toggle-pill resume-touch-pill" title="Start plotting directly from current / touched location instead of travelling back to (0,0) origin"><input type="checkbox" id="chkResumeFromTouchToolbar" checked> 🎯 From Touch</label>
+          <label class="toggle-pill lab-record-pill" title="Lab Record Mode (180° Inverted Physical Plot for bound notebooks)"><input type="checkbox" id="chkLabRecordFlipToolbar"> 📖 Lab Record (180°)</label>
+        </div>
+
+        <div class="toolbar-right">
+          <button class="btn btn-sm" id="btnZoomOut">🔍 -</button>
+          <span id="zoomLevel">100%</span>
+          <button class="btn btn-sm" id="btnZoomIn">🔍 +</button>
+          <button class="btn btn-sm" id="btnZoomFit">Fit</button>
+        </div>
+      </div>
+
+      <!-- Canvas Area -->
+      <div class="canvas-viewport" id="canvasViewport">
+        <div class="paper-sheet touch-mode-active" id="paperSheet" style="width: 496px; height: 608px;">
+          <svg id="plotSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 155 190">
+            <defs>
+              <filter id="inkRoughness">
+                <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="1" result="noise" />
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.3" xChannelSelector="R" yChannelSelector="G" />
+              </filter>
+            </defs>
+            <g id="ruledLinesGroup"></g>
+            <path id="travelPath" class="travel-path" d="" fill="none" stroke="rgba(230, 60, 60, 0.4)" stroke-width="0.3" stroke-dasharray="1.5, 1.5" />
+            <path id="writtenPath" class="draw-path-written" d="" fill="none" stroke="#10b981" stroke-width="0.55" stroke-linecap="round" stroke-linejoin="round" />
+            <path id="drawPath" class="draw-path" d="" fill="none" stroke="#1c4595" stroke-width="0.55" stroke-linecap="round" stroke-linejoin="round" />
+
+            <!-- Touch Ripple Animation Marker -->
+            <circle id="touchTargetRipple" class="touch-target-ripple" cx="0" cy="0" r="0" fill="none" stroke="#3b82f6" stroke-width="0.6" opacity="0"></circle>
+
+            <!-- Live Machine Pen Tip Marker -->
+            <g id="livePenMarker" class="live-pen-marker" transform="translate(0, 0)">
+              <!-- Outer pulse ring -->
+              <circle class="pen-pulse-ring" cx="0" cy="0" r="4.5" fill="none" stroke="#ef4444" stroke-width="0.35" />
+              <!-- Crosshair reticle lines -->
+              <line x1="-3.5" y1="0" x2="3.5" y2="0" stroke="#ef4444" stroke-width="0.25" stroke-linecap="round" />
+              <line x1="0" y1="-3.5" x2="0" y2="3.5" stroke="#ef4444" stroke-width="0.25" stroke-linecap="round" />
+              <!-- Inner pen tip core -->
+              <circle id="penTipCore" class="pen-tip-core" cx="0" cy="0" r="1.3" fill="#ef4444" stroke="#ffffff" stroke-width="0.35" />
+              <!-- Floating coordinate tag -->
+              <g class="pen-coord-badge" transform="translate(3.5, -4.5)">
+                <rect class="badge-bg" x="0" y="0" width="34" height="8.5" rx="1.5" fill="rgba(15, 17, 23, 0.9)" stroke="#ef4444" stroke-width="0.25" />
+                <text id="penMarkerTagText" class="badge-text" x="17" y="5.6" text-anchor="middle" font-size="3.2" fill="#ffffff" font-family="'JetBrains Mono', monospace">X: 0 Y: 0</text>
+              </g>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Footer / Metrics & Action Buttons -->
+      <div class="workspace-footer">
+        <div class="metrics-grid">
+          <div class="metric">
+            <span class="metric-val" id="statWords">0</span>
+            <span class="metric-lbl">Words</span>
+          </div>
+          <div class="metric">
+            <span class="metric-val" id="statDistance">0.0 m</span>
+            <span class="metric-lbl">Pen Path</span>
+          </div>
+          <div class="metric">
+            <span class="metric-val" id="statTime">0.0 min</span>
+            <span class="metric-lbl">Est. Time</span>
+          </div>
+          <div class="metric">
+            <span class="metric-val" id="statPages">1</span>
+            <span class="metric-lbl">Total Pages</span>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn btn-outline" id="btnDownloadSvg">📥 Download SVG</button>
+          <button class="btn btn-outline" id="btnDownloadGcodePage">💾 G-Code (Current Page)</button>
+          <button class="btn btn-outline" id="btnDownloadGcodeAll">📦 G-Code (All Pages)</button>
+          <button class="btn btn-success" id="btnStreamPlot">🚀 Plot to Machine</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Plotting Modal -->
+  <div class="modal-overlay" id="streamModal" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Live Machine Streaming</h3>
+        <button class="btn-close" id="btnCloseModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="stream-progress-bar-wrap">
+          <div class="stream-progress-bar" id="streamProgressFill" style="width: 0%"></div>
+        </div>
+        <div class="stream-meta">
+          <span id="streamProgressPct">0%</span>
+          <span id="streamLinesCounter">Line 0 of 0</span>
+        </div>
+        <div class="terminal-log" id="streamLogBox">
+          <p>Ready to stream...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-warning" id="btnStreamPause">Pause</button>
+        <button class="btn btn-danger" id="btnStreamStop">Abort</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=3"></script>
+</body>
+</html>
